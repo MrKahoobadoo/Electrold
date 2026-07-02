@@ -32,6 +32,7 @@
 #include "../PluginProcessor.h"
 #include "../PluginEditor.h"
 #include "ElectroLookAndFeel.h"
+#include "../../JUCE/modules/juce_audio_plugin_client/detail/juce_CreatePluginFilter.h"
 
 
 //==============================================================================
