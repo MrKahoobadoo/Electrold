@@ -511,9 +511,11 @@ chooser("Select a .wav file to load...", {}, "*.wav")
         addAndMakeVisible(loadStateButton);
     sendOutButton.setButtonText("Send to Device");
     sendOutButton.onClick = [this] { 
+
+
         for(auto inputs : MidiOutput::getAvailableDevices())
         {
-            if (inputs.name == "Electrosteel")
+            if ((inputs.name == "Electrosteel")||(inputs.name == "Electrobass"));//||(inputs.name == "USB MIDI Device Port 2"))
             {
                 
                 
@@ -522,6 +524,8 @@ chooser("Select a .wav file to load...", {}, "*.wav")
                 
             }
         }
+
+        //sysexOut = MidiOutput::openDevice(MidiOutput::openDevice(2));
         if (sysexOut )
         {
             MidiBuffer midiMessages; 
@@ -777,7 +781,7 @@ chooser("Select a .wav file to load...", {}, "*.wav")
     streamChangesButton.onClick = [this] {
         for(auto inputs : MidiOutput::getAvailableDevices())
         {
-            if (inputs.name == "Electrosteel")
+            if ((inputs.name == "Electrosteel")||(inputs.name == "Electrobass"))
             {
                 
                 

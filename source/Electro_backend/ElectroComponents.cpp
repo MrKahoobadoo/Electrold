@@ -641,7 +641,7 @@ void TuningTab::buttonClicked (Button *b)
         
         for(auto inputs : MidiOutput::getAvailableDevices())
         {
-            if (inputs.name == "Electrosteel")
+            //if ((inputs.name == "Electrosteel")||(inputs.name == "Electrobass"))
             {
                 
                 
@@ -736,7 +736,7 @@ void TuningTab::buttonClicked (Button *b)
     {
         for(auto inputs : MidiOutput::getAvailableDevices())
         {
-            if (inputs.name == "Electrosteel")
+            //if ((inputs.name == "Electrosteel")||(inputs.name == "Electrobass"))
             {
                 
                 
@@ -908,7 +908,7 @@ CopedentTable::CopedentTable(ElectroAudioProcessorEditor& e, ElectroAudioProcess
         sendOutButton.onClick = [this] {
             for(auto inputs : MidiOutput::getAvailableDevices())
             {
-                if (inputs.name == "Electrosteel")
+                if ((inputs.name == "Electrosteel")||(inputs.name == "Electrobass"))
                 {
                     
                     

@@ -59,7 +59,7 @@ namespace juce
 #else
                                                , {}
 #endif
-#if JUCE_DONT_AUTO_OPEN_MIDI_DEVICElectro_ON_MOBILE
+#if JUCE_DONT_AUTO_OPEN_MIDI_DEVICE_ON_MOBILE
                                                , false
 #endif
                                                );

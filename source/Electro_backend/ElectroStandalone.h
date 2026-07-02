@@ -32,6 +32,7 @@
 #include "../PluginProcessor.h"
 #include "../PluginEditor.h"
 #include "ElectroLookAndFeel.h"
+#include "juce_audio_plugin_client/detail/juce_CreatePluginFilter.h"
 
 
 //==============================================================================
@@ -71,7 +72,7 @@ public:
                            #if JUCE_ANDROID || JUCE_IOS
                             bool shouldAutoOpenMidiDevices = true
                            #else
-                            bool shouldAutoOpenMidiDevices = false
+                            bool shouldAutoOpenMidiDevices = true
                            #endif
                             )
 
@@ -776,7 +777,7 @@ public:
                            #if JUCE_ANDROID || JUCE_IOS
                             bool autoOpenMidiDevices = true
                            #else
-                            bool autoOpenMidiDevices = false
+                            bool autoOpenMidiDevices = true
                            #endif
                             )
         : DocumentWindow (title, backgroundColour, DocumentWindow::minimiseButton | DocumentWindow::closeButton),

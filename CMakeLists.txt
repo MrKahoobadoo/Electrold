@@ -25,7 +25,7 @@ set(PROJECT_NAME "Electrosnyth")
 #   set(PROJECT_NAME "MyPlugin_v${MAJOR_VERSION}")
 # Doing so enables major versions to show up in IDEs and DAWs as separate plugins
 # allowing you to change parameters and behavior without breaking existing user projects
-set(PRODUCT_NAME "ElectroSnythhw")
+set(PRODUCT_NAME "ElectroSnythwithMIDIOUT")
 
 # Change me! Used for the MacOS bundle name and Installers
 set(COMPANY_NAME "Snyderphonics")
@@ -68,6 +68,8 @@ juce_add_plugin("${PROJECT_NAME}"
     # On MacOS, plugin is copied to /Users/yourname/Library/Audio/Plug-Ins/
     COPY_PLUGIN_AFTER_BUILD TRUE
     NEEDS_MIDI_INPUT TRUE
+        NEEDS_MIDI_OUTPUT TRUE
+
     IS_SYNTH TRUE
     # Change me!
     # A four-character plugin id
@@ -134,7 +136,7 @@ target_compile_definitions(SharedCode
     VERSION="${CURRENT_VERSION}"
 
     # JucePlugin_Name is for some reason doesn't use the nicer PRODUCT_NAME
-    PRODUCT_NAME_WITHOUT_VERSION="Electrosynthhht"
+    PRODUCT_NAME_WITHOUT_VERSION="ElectrosynthwithMIDIOUT"
 )
 target_compile_options(SharedCode INTERFACE -w)
 target_compile_options(SharedCode INTERFACE -Wno-unused-parameter)
