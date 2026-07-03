@@ -11,6 +11,8 @@
 #pragma once
 #include "Electro_backend/FXTab.h"
 #include <JuceHeader.h>
+#include <functional>
+#include <utility>
 #include "PluginProcessor.h"
 #include "Electro_backend/ElectroModules.h"
 #include "Electro_backend/ElectroComponents.h"
@@ -94,13 +96,16 @@ public:
     void updateMPEToggle(bool state);
     void updatePedalVolumeControl(bool state);
     void updateNumVoicesSlider(int numVoices);
+    void setSelectedMidiOutputProvider(std::function<MidiOutput*()> provider); // added
+    bool sendMidiBufferToSelectedOutput(const MidiBuffer& midiMessages); // added
     LockFreeQueue knobQueue;
     LockFreeQueue mappingQueue;
-    std::unique_ptr<MidiOutput> sysexOut; 
+    std::unique_ptr<MidiOutput> sysexOut;
     MidiBuffer sysexMidi;
     float knobMidiArray[512];
 private:
     LookAndFeel_V4 laf;
+    std::function<MidiOutput*()> selectedMidiOutputProvider;
     // Updating things that don't have attachments to the vts
     
     void updateStringChannel(int string, int ch);

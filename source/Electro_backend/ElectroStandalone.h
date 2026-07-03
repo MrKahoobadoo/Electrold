@@ -547,41 +547,6 @@ private:
         
         ~SettingsComponent()
         {
-            for(auto inputs : MidiInput::getAvailableDevices())
-            {
-                if (inputs.name == "Electrosteel")
-                {
-                    if(deviceSelector.deviceManager.isMidiInputDeviceEnabled(inputs.identifier))
-                    {
-                        if (auto* editor = dynamic_cast<ElectroAudioProcessorEditor*>(owner.processor->getActiveEditor()))
-                        {
-//                            editor->updateMPEToggle(true);
-//                            editor->updateNumVoicesSlider(10);
-//                            editor->updatePedalVolumeControl(true);
-                            editor->sysexOut = MidiOutput::openDevice(inputs.identifier);
-                        }
-                    }
-                }
-                
-                if (inputs.name == "Electrobass")
-                {
-                    if(deviceSelector.deviceManager.isMidiInputDeviceEnabled(inputs.identifier))
-                    {
-                        if (auto* editor = dynamic_cast<ElectroAudioProcessorEditor*>(owner.processor->getActiveEditor()))
-                        {
-//                            editor->updateMPEToggle(false);
-//                            editor->updateNumVoicesSlider(1);
-//                            editor->updatePedalVolumeControl(false);
-                        }
-                    }
-                }
-            }
-                
-            
-                
-
-                   
-                   
         }
 
         void paint (Graphics& g) override
@@ -989,6 +954,9 @@ private:
 
             if (editor != nullptr)
             {
+                if (auto* electroEditor = dynamic_cast<ElectroAudioProcessorEditor*> (editor.get()))
+                    electroEditor->setSelectedMidiOutputProvider ([this] { return owner.getDeviceManager().getDefaultMidiOutput(); });
+
                 editor->addComponentListener (this);
                 componentMovedOrResized (*editor, false, true);
 
