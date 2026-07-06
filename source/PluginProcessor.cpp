@@ -319,9 +319,10 @@ AudioProcessorValueTreeState::ParameterLayout ElectroAudioProcessor::createParam
     for (int i = 0; i < paramIds.size(); ++i)
     {
         DBG("\"" +paramIds[i]+ "\","); //+ ": " + String(i));
+        //std::cout << "\"" +paramIds[i]+ "\"," << std::endl;
     }
-    
-    
+
+
     return layout;
 }
 
