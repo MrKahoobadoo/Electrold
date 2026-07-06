@@ -619,199 +619,139 @@ void TuningTab::textEditorEscapeKeyPressed (TextEditor&)
     
 }
 
-void TuningTab::buttonClicked (Button *b)
-{
-    if(b == &importButton)
-    {
+void TuningTab::buttonClicked (Button *b) {
+    if(b == &importButton) {
         importScala();
     }
-    else if (b == &resetButton)
-    {
+    else if (b == &resetButton) {
         sclTextEditor.setText(currentScalaString = processor.tuner.resetSCL(processor.centsDeviation));
         kbmTextEditor.setText(currentKBMString = processor.tuner.resetKBM(processor.centsDeviation));
         processor.tuner.setIsMTS(false);
         MTSButton.setToggleState(false, dontSendNotification);
     }
-    else if (b == &importKBMButton)
-    {
+    else if (b == &importKBMButton) {
         importKBM();
     }
-    else if (b == &sendTuningButton)
-    {
-        
-        for(auto inputs : MidiOutput::getAvailableDevices())
-        {
-            if (inputs.name == "Electrosteel")
-            {
-                
-                
-                editor.sysexOut = MidiOutput::openDevice(inputs.identifier);
-                
-                
-            }
+    else if (b == &sendTuningButton) {
+        MidiBuffer midiMessages;
+        float tuningNumber_ = tuningNumber.getValue();
+        String presetName = tuningNameEditor.getText();
+        uint16_t currentChunk = 0;
+        Array<uint8_t> data7bitInt;
+        union uintfUnion fu;
+            
+        data7bitInt.add(1); // saying it's a preset
+        data7bitInt.add(tuningNumber_); // which preset are we saving
+            
+        for (int i = 0; i < presetName.length(); i++) {
+            data7bitInt.add((presetName.toUTF8()[i] & 127)); //printable characters are in the 0-127 range
         }
-        if (editor.sysexOut )
-        {
-            MidiBuffer midiMessages;
-            float tuningNumber_ = tuningNumber.getValue();
-            String presetName = tuningNameEditor.getText();
-            uint16_t currentChunk = 0;
-            Array<uint8_t> data7bitInt;
-            union uintfUnion fu;
-            
-            data7bitInt.add(1); // saying it's a preset
-            data7bitInt.add(tuningNumber_); // which preset are we saving
-            
-            for (int i = 0; i < presetName.length(); i++)
-            {
-                data7bitInt.add((presetName.toUTF8()[i] & 127)); //printable characters are in the 0-127 range
-                
-            }
-            uint16 remainingBlanks = 14 - presetName.length();
-            for (uint16 i = 0; i < remainingBlanks; i++)
-            {
-                data7bitInt.add(32);
-            }
+        uint16 remainingBlanks = 14 - presetName.length();
+
+        for (uint16 i = 0; i < remainingBlanks; i++) {
+            data7bitInt.add(32);
+        }
             //MidiMessage presetMessage = ;
             
-            midiMessages.addEvent(MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size()), 0);
+        midiMessages.addEvent(MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(),
+            sizeof(uint8_t) * data7bitInt.size()), 0);
             
+        currentChunk++;
+        Array<float> data;
+        for (int i = 0; i < 128; i++) {
+            data.add(processor.centsDeviation[i]);
+        }
+            
+        uint16_t currentDataPointer = 0;
+        uint16_t sizeOfSysexChunk = (64 / 5) - 3;
+        int dataToSend = data.size();
+        while(currentDataPointer < dataToSend) {
+            data7bitInt.clear();
+            data7bitInt.add(1); // saying it's a tuning
+            data7bitInt.add(tuningNumber_); // which tuning are we saving
+                
+            //data7bitInt.add(currentChunk); // whichChhunk
+            uint16_t toSendInThisChunk;
+            uint16_t dataRemaining = dataToSend - currentDataPointer;
+            if (dataRemaining < sizeOfSysexChunk) {
+                toSendInThisChunk = dataRemaining;
+            }
+            else {
+                toSendInThisChunk = sizeOfSysexChunk;
+            }
+                
+            for (int i = currentDataPointer; i < toSendInThisChunk+currentDataPointer; i++) {
+                fu.f = data[i];
+                data7bitInt.add((fu.i >> 28) & 15);
+                data7bitInt.add((fu.i >> 21) & 127);
+                data7bitInt.add((fu.i >> 14) & 127);
+                data7bitInt.add((fu.i >> 7) & 127);
+                data7bitInt.add(fu.i & 127);
+            }
+            currentDataPointer = currentDataPointer + toSendInThisChunk;
+            MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
+            midiMessages.addEvent(presetMessage, 0);
             currentChunk++;
-            Array<float> data;
-            for (int i = 0; i < 128; i++)
-            {
-                data.add(processor.centsDeviation[i]);
-            }
-            
-            
-            
-            uint16_t currentDataPointer = 0;
-            uint16_t sizeOfSysexChunk = (64 / 5) - 3;
-            int dataToSend = data.size();
-            while(currentDataPointer < dataToSend)
-            {
-                data7bitInt.clear();
-                
-                data7bitInt.add(1); // saying it's a tuning
-                data7bitInt.add(tuningNumber_); // which tuning are we saving
-                
-                //data7bitInt.add(currentChunk); // whichChhunk
-                uint16_t toSendInThisChunk;
-                uint16_t dataRemaining = dataToSend - currentDataPointer;
-                if (dataRemaining < sizeOfSysexChunk)
-                {
-                    toSendInThisChunk = dataRemaining;
-                }
-                else
-                {
-                    toSendInThisChunk = sizeOfSysexChunk;
-                }
-                
-                for (int i = currentDataPointer; i < toSendInThisChunk+currentDataPointer; i++)
-                {
-                    fu.f = data[i];
-                    data7bitInt.add((fu.i >> 28) & 15);
-                    data7bitInt.add((fu.i >> 21) & 127);
-                    data7bitInt.add((fu.i >> 14) & 127);
-                    data7bitInt.add((fu.i >> 7) & 127);
-                    data7bitInt.add(fu.i & 127);
-                    
-                }
-                currentDataPointer = currentDataPointer + toSendInThisChunk;
-                MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
-                
-                midiMessages.addEvent(presetMessage, 0);
-                
-                currentChunk++;
-            }
-            data7bitInt.clear();
-            data7bitInt.add(126); // custom command to start parsing, sysex send is finished!
-            data7bitInt.add(tuningNumber_); // which tuning did we just finish
-            MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
-            midiMessages.addEvent(presetMessage, 0);
-            editor.sysexOut->sendBlockOfMessagesNow(midiMessages);
         }
+
+        data7bitInt.clear();
+        data7bitInt.add(126); // custom command to start parsing, sysex send is finished!
+        data7bitInt.add(tuningNumber_); // which tuning did we just finish
+        MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
+        midiMessages.addEvent(presetMessage, 0);
+        editor.sendMidiBufferToSelectedOutput(midiMessages); // send to selected MIDI Output from menu
     }
-    else if (b==& sendOpenStrings)
-    {
-        for(auto inputs : MidiOutput::getAvailableDevices())
-        {
-            if (inputs.name == "Electrosteel")
-            {
-                
-                
-                editor.sysexOut = MidiOutput::openDevice(inputs.identifier);
-                
-                
-            }
+    else if (b==& sendOpenStrings) {
+        MidiBuffer midiMessages;
+        uint16_t currentChunk = 0;
+        Array<uint8_t> data7bitInt;
+        union uintfUnion fu;
+            
+        data7bitInt.add(3); // saying it's a preset
+        data7bitInt.add(0); // which preset are we saving
+            
+        Array<float> data;
+        for (int i = 0; i < 4; i++) {
+            data.add(processor.openStrings[i]);
         }
-        if (editor.sysexOut )
-        {
-            MidiBuffer midiMessages;
-            uint16_t currentChunk = 0;
-            Array<uint8_t> data7bitInt;
-            union uintfUnion fu;
             
-            data7bitInt.add(3); // saying it's a preset
-            data7bitInt.add(0); // which preset are we saving
-            
-            
-            
-            
-            Array<float> data;
-            for (int i = 0; i < 4; i++)
-            {
-                data.add(processor.openStrings[i]);
-            }
-            
-            
-            
-            uint16_t currentDataPointer = 0;
-            uint16_t sizeOfSysexChunk = (64 / 5) - 3;
-            int dataToSend = data.size();
-            while(currentDataPointer < dataToSend)
-            {
-                data7bitInt.clear();
-                
-                data7bitInt.add(3); // saying it's a tuning
-                data7bitInt.add(0); // which tuning are we saving
-                
-                //data7bitInt.add(currentChunk); // whichChhunk
-                uint16_t toSendInThisChunk;
-                uint16_t dataRemaining = dataToSend - currentDataPointer;
-                if (dataRemaining < sizeOfSysexChunk)
-                {
-                    toSendInThisChunk = dataRemaining;
-                }
-                else
-                {
-                    toSendInThisChunk = sizeOfSysexChunk;
-                }
-                
-                for (int i = currentDataPointer; i < toSendInThisChunk+currentDataPointer; i++)
-                {
-                    fu.f = data[i];
-                    data7bitInt.add((fu.i >> 28) & 15);
-                    data7bitInt.add((fu.i >> 21) & 127);
-                    data7bitInt.add((fu.i >> 14) & 127);
-                    data7bitInt.add((fu.i >> 7) & 127);
-                    data7bitInt.add(fu.i & 127);
-                    
-                }
-                currentDataPointer = currentDataPointer + toSendInThisChunk;
-                MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
-                
-                midiMessages.addEvent(presetMessage, 0);
-                
-                currentChunk++;
-            }
+        uint16_t currentDataPointer = 0;
+        uint16_t sizeOfSysexChunk = (64 / 5) - 3;
+        int dataToSend = data.size();
+        while(currentDataPointer < dataToSend) {
             data7bitInt.clear();
-            data7bitInt.add(126); // custom command to start parsing, sysex send is finished!
-            data7bitInt.add(0); // which tuning did we just finish
+            data7bitInt.add(3); // saying it's a tuning
+            data7bitInt.add(0); // which tuning are we saving
+            //data7bitInt.add(currentChunk); // whichChhunk
+            uint16_t toSendInThisChunk;
+            uint16_t dataRemaining = dataToSend - currentDataPointer;
+            if (dataRemaining < sizeOfSysexChunk) {
+                toSendInThisChunk = dataRemaining;
+            }
+            else {
+                toSendInThisChunk = sizeOfSysexChunk;
+            }
+                
+            for (int i = currentDataPointer; i < toSendInThisChunk+currentDataPointer; i++) {
+                fu.f = data[i];
+                data7bitInt.add((fu.i >> 28) & 15);
+                data7bitInt.add((fu.i >> 21) & 127);
+                data7bitInt.add((fu.i >> 14) & 127);
+                data7bitInt.add((fu.i >> 7) & 127);
+                data7bitInt.add(fu.i & 127);
+            }
+
+            currentDataPointer = currentDataPointer + toSendInThisChunk;
             MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
             midiMessages.addEvent(presetMessage, 0);
-            editor.sysexOut->sendBlockOfMessagesNow(midiMessages);
+            currentChunk++;
         }
+        data7bitInt.clear();
+        data7bitInt.add(126); // custom command to start parsing, sysex send is finished!
+        data7bitInt.add(0); // which tuning did we just finish
+        MidiMessage presetMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
+        midiMessages.addEvent(presetMessage, 0);
+        editor.sendMidiBufferToSelectedOutput(midiMessages); // *** send buffer to the midi output selected in dropdown
     }
 }
 
@@ -903,124 +843,94 @@ CopedentTable::CopedentTable(ElectroAudioProcessorEditor& e, ElectroAudioProcess
         
         nameField.setRowAndColumn(0, -2);
         addAndMakeVisible (nameField);
-        
+
         sendOutButton.setButtonText("Send copedent via MIDI");
         sendOutButton.onClick = [this] {
-            for(auto inputs : MidiOutput::getAvailableDevices())
-            {
-                if (inputs.name == "Electrosteel")
-                {
-                    
-                    
-                    editor.sysexOut = MidiOutput::openDevice(inputs.identifier);
-                    
-                    
+            MidiBuffer midiMessages;
+            Array<float> data;
+            for (int i = 0; i < copedentArray.size(); ++i) {
+                for (auto value : copedentArray.getReference(i)) {
+                    data.add(value);
                 }
             }
-            if (editor.sysexOut )
-            {
-                MidiBuffer midiMessages;
-                Array<float> data;
                 
-                for (int i = 0; i < copedentArray.size(); ++i)
-                {
-                    for (auto value : copedentArray.getReference(i))
-                    {
-                        data.add(value);
-                    }
+            Array<uint8_t> data7bitInt;
+            union uintfUnion fu;
+            uint16_t sizeOfSysexChunk = (64 / 5) - 3;
+            int dataToSend = data.size();
+            uint16_t currentChunk = 0;
+            uint16_t currentDataPointer = 0;
+
+            data7bitInt.clear();
+            data7bitInt.add(2); // saying it's a copedent
+            data7bitInt.add(processor.copedentNumber); // saying which copedent number to store (need this to be a user entered value)
+            for (int i = 0; i < processor.copedentName.length(); i++) {
+                if (i < 10) {
+                    data7bitInt.add((processor.copedentName.toUTF8()[i] & 127)); //printable characters are in the 0-127 range
                 }
+            }
+            uint16 remainingBlanks = 0;
+            if (processor.copedentName.length() < 10) {
+                remainingBlanks = 10 - processor.copedentName.length();
+            }
+
+            for (uint16 i = 0; i < remainingBlanks; i++) {
+                data7bitInt.add(32);
+            }
                 
-                Array<uint8_t> data7bitInt;
-                union uintfUnion fu;
-                
-                uint16_t sizeOfSysexChunk = (64 / 5) - 3;
-                int dataToSend = data.size();
-                uint16_t currentChunk = 0;
-                uint16_t currentDataPointer = 0;
-                
+            midiMessages.addEvent(MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size()), 0);
+            currentChunk++;
+
+            while(currentDataPointer < dataToSend) {
                 data7bitInt.clear();
                 data7bitInt.add(2); // saying it's a copedent
                 data7bitInt.add(processor.copedentNumber); // saying which copedent number to store (need this to be a user entered value)
-                for (int i = 0; i < processor.copedentName.length(); i++)
-                {
-                    if (i < 10)
-                    {
-                        data7bitInt.add((processor.copedentName.toUTF8()[i] & 127)); //printable characters are in the 0-127 range
-                    }
+                //flat7bitInt.add(50 + j);
+                    
+                //data7bitInt.add(currentChunk); // whichChhunk
+                uint16_t toSendInThisChunk;
+                uint16_t dataRemaining = dataToSend - currentDataPointer;
+                if (dataRemaining < sizeOfSysexChunk) {
+                    toSendInThisChunk = dataRemaining;
                 }
-                uint16 remainingBlanks = 0;
-                if (processor.copedentName.length() < 10)
-                {
-                    remainingBlanks = 10 - processor.copedentName.length();
+                else {
+                    toSendInThisChunk = sizeOfSysexChunk;
                 }
-                for (uint16 i = 0; i < remainingBlanks; i++)
-                {
-                    data7bitInt.add(32);
+                    
+                for (int i = currentDataPointer; i < toSendInThisChunk+currentDataPointer; i++) {
+                    fu.f = data[i];
+                    data7bitInt.add((fu.i >> 28) & 15);
+                    data7bitInt.add((fu.i >> 21) & 127);
+                    data7bitInt.add((fu.i >> 14) & 127);
+                    data7bitInt.add((fu.i >> 7) & 127);
+                    data7bitInt.add(fu.i & 127);
                 }
-                
-                midiMessages.addEvent(MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size()), 0);
-                
-                currentChunk++;
-                
-                
-                while(currentDataPointer < dataToSend)
-                {
-                    data7bitInt.clear();
-                    
-                    data7bitInt.add(2); // saying it's a copedent
-                    data7bitInt.add(processor.copedentNumber); // saying which copedent number to store (need this to be a user entered value)
-                    //flat7bitInt.add(50 + j);
-                    
-                    //data7bitInt.add(currentChunk); // whichChhunk
-                    uint16_t toSendInThisChunk;
-                    uint16_t dataRemaining = dataToSend - currentDataPointer;
-                    if (dataRemaining < sizeOfSysexChunk)
-                    {
-                        toSendInThisChunk = dataRemaining;
-                    }
-                    else
-                    {
-                        toSendInThisChunk = sizeOfSysexChunk;
-                    }
-                    
-                    for (int i = currentDataPointer; i < toSendInThisChunk+currentDataPointer; i++)
-                    {
-                        fu.f = data[i];
-                        data7bitInt.add((fu.i >> 28) & 15);
-                        data7bitInt.add((fu.i >> 21) & 127);
-                        data7bitInt.add((fu.i >> 14) & 127);
-                        data7bitInt.add((fu.i >> 7) & 127);
-                        data7bitInt.add(fu.i & 127);
-                        
-                    }
-                    currentDataPointer = currentDataPointer + toSendInThisChunk;
-                    MidiMessage copedentMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
-                    
-                    midiMessages.addEvent(copedentMessage, 0);
-                    
-                    currentChunk++;
-                }
-                data7bitInt.clear();
-                data7bitInt.add(126); // custom command to start parsing, sysex send is finished!
-                data7bitInt.add(processor.copedentNumber); // which copedent did we just finish
+                currentDataPointer = currentDataPointer + toSendInThisChunk;
                 MidiMessage copedentMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
+
                 midiMessages.addEvent(copedentMessage, 0);
-                editor.sysexOut->sendBlockOfMessagesNow(midiMessages);
-            }};
-        addAndMakeVisible(sendOutButton);
-        addAndMakeVisible(clearButton);
-        clearButton.setButtonText("Clear");
-        clearButton.onClick = [this] {
-            for (int i = 0; i < CopedentColumnNil; ++i)
-            {
-                for (int v = 0; v < MAX_NUM_VOICES; ++v)
-                {
-                    copedentArray.getReference(i).set(v, cCopedentArrayInit[i][v]);
-                    //refreshComponentForCell(i,v, false, nullptr);
-                }
+                currentChunk++;
             }
-            fundamental = 21.f;
-            resized();
-            
+            data7bitInt.clear();
+            data7bitInt.add(126); // custom command to start parsing, sysex send is finished!
+            data7bitInt.add(processor.copedentNumber); // which copedent did we just finish
+            MidiMessage copedentMessage = MidiMessage::createSysExMessage(data7bitInt.getRawDataPointer(), sizeof(uint8_t) * data7bitInt.size());
+            midiMessages.addEvent(copedentMessage, 0);
+            editor.sendMidiBufferToSelectedOutput(midiMessages); // send to selected MIDI Output from menu
         };
+
+    addAndMakeVisible(sendOutButton);
+    addAndMakeVisible(clearButton);
+    clearButton.setButtonText("Clear");
+    clearButton.onClick = [this] {
+        for (int i = 0; i < CopedentColumnNil; ++i) {
+            for (int v = 0; v < MAX_NUM_VOICES; ++v) {
+                copedentArray.getReference(i).set(v, cCopedentArrayInit[i][v]);
+                //refreshComponentForCell(i,v, false, nullptr);
+            }
+        }
+        fundamental = 21.f;
+        resized();
+            
+    };
     }
